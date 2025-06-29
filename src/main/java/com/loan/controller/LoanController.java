@@ -105,39 +105,70 @@ public class LoanController
 		return "customer";
 	}
 	@PostMapping("/loaninfo")
-	public String handleUserLogin(ModelMap model, @RequestParam int id, @RequestParam String name, @RequestParam String password)
-			throws SQLException {
-		model.clear();
-		int flag1=0,flag2=0;
-		if (!servicecust.validateLogin(name,password)) {
-			model.put("errorMessage", "Invalid Credentials");
-			flag1=1;
-		}
-		if (!servicecust.validateLogin2(id,name)) {
-			model.put("errorMessage", "Invalid Credentials");
-			flag2=1;
-		}
-		if(flag1==1||flag2==1) {
-			return "customer";
-		}
-		servicecust.retrieveCustomerDetailsCust(id);
-		model.put("status", servicecust.loan_status);
-		model.put("name", servicecust.name1);
-		model.put("id",servicecust.id);
-		model.put("phone_no",servicecust.phone);
-		model.put("amount",servicecust.amount);
-		model.put("income",servicecust.income);
-		model.put("loan_type",servicecust.loan_type);
-		model.put("tenure",servicecust.tenure);
-		model.put("rate",servicecust.rate);
-		model.put("emi",servicecust.emi);
-		model.put("l_d",servicecust.l_d);
-		emiValue=servicecust.emi;
-		 ten = servicecust.tenure;
-		
-		return "loaninfo";
-		
-	}
+
+public String handleUserLogin(
+    ModelMap model,
+    @RequestParam(required = false) String idStr,
+    @RequestParam(required = false) String name,
+    @RequestParam String password
+) throws SQLException {
+    model.clear();
+
+    // Convert idStr to Integer if valid
+    Integer id = null;
+    if (idStr != null && idStr.trim().matches("\\d+")) {
+        id = Integer.parseInt(idStr.trim());
+    }
+
+    boolean useName = (name != null && !name.trim().isEmpty());
+    boolean useId   = (id != null);
+
+    // Must provide either name or id + password
+    if ((!useName && !useId) || password.trim().isEmpty()) {
+        model.put("errorMessage", "Enter either Loan ID or Name, and a password.");
+        return "customer";
+    }
+
+    boolean valid = false;
+    if (useName) {
+        valid = servicecust.validateLogin(name.trim(), password);
+        if (valid) {
+            // If login by name succeeds, you might want to retrieve ID
+            servicecust.retrieveCustomerId(name.trim());
+            id = servicecust.id;
+        }
+    }
+    else {
+        // Login by ID assumed: using your existing method validateLogin2
+        valid = servicecust.validateLogin2(id, null);
+        // Note: If validateLogin2 needs name too, adapt accordingly
+    }
+
+    if (!valid) {
+        model.put("errorMessage", "Invalid Credentials");
+        return "customer";
+    }
+
+    // At this point, login is valid and you have an `id`
+    // Populate the model as before
+    servicecust.retrieveCustomerDetailsCust(id);
+    model.put("status", servicecust.loan_status);
+    model.put("name", servicecust.name1);
+    model.put("id", servicecust.id);
+    model.put("phone_no", servicecust.phone);
+    model.put("amount", servicecust.amount);
+    model.put("income", servicecust.income);
+    model.put("loan_type", servicecust.loan_type);
+    model.put("tenure", servicecust.tenure);
+    model.put("rate", servicecust.rate);
+    model.put("emi", servicecust.emi);
+    model.put("l_d", servicecust.l_d);
+    emiValue = servicecust.emi;
+    ten = servicecust.tenure;
+
+    return "loaninfo";
+}
+	
 	@GetMapping("/register")
 	public String showLoginPage7(ModelMap model)
 	{
